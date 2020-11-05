@@ -1,21 +1,3 @@
-load("@io_bazel_rules_docker//container:container.bzl", "container_image", "container_push")
+load(":terraform.bzl", "terraform_images")
 
-container_image(
-    name = "0.13.0",
-    base = "@distroless//image",
-    cmd = "help",
-    directory = "/bin/",
-    entrypoint = ["/bin/terraform"],
-    files = ["@terraform_0.13.0_linux_amd64//:terraform"],
-    mode = "0o755",
-    repository = "quay.io/hadrienpatte",
-)
-
-container_push(
-    name = "0.13.0_push",
-    format = "Docker",
-    image = ":0.13.0",
-    registry = "quay.io",
-    repository = "hadrienpatte/{}".format(package_name()),
-    tag = "0.13.0",
-)
+terraform_images()

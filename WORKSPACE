@@ -27,9 +27,6 @@ container_pull(
     repository = "distroless/static-debian10",
 )
 
-http_archive(
-    name = "terraform_0.13.0_linux_amd64",
-    build_file_content = "exports_files([\"terraform\"])",
-    sha256 = "9ed437560faf084c18716e289ea712c784a514bdd7f2796549c735d439dbe378",
-    urls = ["https://releases.hashicorp.com/terraform/0.13.0/terraform_0.13.0_linux_amd64.zip"],
-)
+load("//terraform:terraform.bzl", "terraform_binaries")
+
+terraform_binaries()
