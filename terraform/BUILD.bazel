@@ -1,3 +1,0 @@
-load(":terraform.bzl", "terraform_images")
-
-terraform_images()
