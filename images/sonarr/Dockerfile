@@ -17,7 +17,7 @@ RUN \
         dotnet-runtime-8.0_libs \
         libsqlite3-0_libs
 
-# Download sonarrc
+# Download sonarr
 RUN \
     case "${TARGETARCH}" in \
         'amd64') export ARCH='x64' ;; \
