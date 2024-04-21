@@ -1,11 +1,13 @@
-FROM golang:latest as builder
+ARG GOLANG_VERSION
+FROM golang:$GOLANG_VERSION as builder
 
 ARG TARGETARCH
 ARG VERSION
+ARG CHISEL_VERSION
 
 # Install chisel and build rootfs with radarr dependencies
 RUN \
-    go install github.com/canonical/chisel/cmd/chisel@latest \
+    go install github.com/canonical/chisel/cmd/chisel@${CHISEL_VERSION} \
     && mkdir /rootfs \
     && chisel cut \
         --release ubuntu-24.04 \
