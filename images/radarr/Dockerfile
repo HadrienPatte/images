@@ -14,10 +14,18 @@ RUN \
         --root /rootfs \
         base-files_base \
         base-files_release-info \
-        base-passwd_data \
         ca-certificates_data \
         dotnet-runtime-8.0_libs \
-        libsqlite3-0_libs
+        libsqlite3-0_libs \
+    && useradd \
+        --root /rootfs \
+        --system \
+        --no-create-home \
+        --uid 1000 \
+        nonroot \
+    && rm /rootfs/etc/.pwd.lock \
+    && mkdir /rootfs/config \
+    && chown 1000 /rootfs/config
 
 # Download radarr
 RUN \
@@ -33,4 +41,5 @@ FROM scratch
 COPY --from=builder /rootfs /
 COPY --from=builder /Radarr /Radarr
 
+USER nonroot
 ENTRYPOINT ["/Radarr/Radarr", "--nobrowser", "--data=/config"]
