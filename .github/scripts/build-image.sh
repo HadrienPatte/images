@@ -5,6 +5,9 @@ IMAGE=$1
 
 echo "Building $IMAGE"
 
+DEFAULT_GOLANG_VERSION="1.21"
+DEFAULT_CHISEL_VERSION="v0.10.0"
+
 RELEASE=$(./images/${IMAGE}/latest.sh)
 VERSION=${RELEASE%%_*}
 VERSION=${VERSION#release-}
@@ -20,8 +23,8 @@ else
         --tag ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:latest \
         --build-arg RELEASE=${RELEASE} \
         --build-arg VERSION=${VERSION} \
-        --build-arg GOLANG_VERSION="1.20" \
-        --build-arg CHISEL_VERSION="v0.9.1" \
+        --build-arg GOLANG_VERSION=${DEFAULT_GOLANG_VERSION} \
+        --build-arg CHISEL_VERSION=${DEFAULT_CHISEL_VERSION} \
         --label "org.opencontainers.image.authors=${GITHUB_REPOSITORY_OWNER}" \
         --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
         --label "org.opencontainers.image.version=${VERSION}" \
