@@ -9,6 +9,7 @@ DEFAULT_GOLANG_VERSION="1.21"
 DEFAULT_CHISEL_VERSION="v0.10.0"
 
 REPOSITORY=$(jq -r '.repository' ./images/${IMAGE}/metadata.json)
+DESCRIPTION=$(curl -s "https://api.github.com/repos/${REPOSITORY}" | jq -r '.description | values')
 RELEASE_METADATA=$(curl -s "https://api.github.com/repos/${REPOSITORY}/releases/latest")
 SOURCE_DATE_EPOCH=$(date +%s -d $(echo ${RELEASE_METADATA} | jq -r '.created_at'))
 RELEASE=$(echo ${RELEASE_METADATA} | jq -r '.tag_name')
@@ -35,7 +36,8 @@ else
         --label "org.opencontainers.image.version=${VERSION}" \
         --label "org.opencontainers.image.vendor=${GITHUB_REPOSITORY_OWNER}" \
         --label "org.opencontainers.image.title=${IMAGE}" \
-        --output type=registry,name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:${VERSION},rewrite-timestamp=true \
-        --output type=registry,name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:latest,rewrite-timestamp=true \
+        --annotation "index:org.opencontainers.image.description=${DESCRIPTION}" \
+        --output "type=registry,name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:${VERSION},rewrite-timestamp=true" \
+        --output "type=registry,name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:latest,rewrite-timestamp=true" \
         - < images/${IMAGE}/Dockerfile
 fi
