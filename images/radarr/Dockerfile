@@ -15,8 +15,10 @@ RUN \
         base-files_base \
         base-files_release-info \
         ca-certificates_data \
-        dotnet-runtime-8.0_libs \
+        libicu74_libs \
         libsqlite3-0_libs \
+        libssl3t64_libs \
+        zlib1g_libs \
     && useradd \
         --root /rootfs \
         --system \
