@@ -8,12 +8,15 @@ ARG CHISEL_VERSION
 # Install chisel and build rootfs with sonarr dependencies
 RUN \
     go install github.com/canonical/chisel/cmd/chisel@${CHISEL_VERSION} \
-    && mkdir /rootfs \
-    && chisel cut \
+    && curl -LO https://raw.githubusercontent.com/canonical/rocks-toolbox/main/chisel-wrapper \
+    && chmod +x ./chisel-wrapper \
+    && apt update \
+    && apt install file --yes \
+    && mkdir -p /rootfs/var/lib/dpkg \
+    && ./chisel-wrapper --generate-dpkg-status /rootfs/var/lib/dpkg/status -- \
         --release ubuntu-24.04 \
         --root /rootfs \
         base-files_base \
-        base-files_release-info \
         ca-certificates_data \
         libicu74_libs \
         libsqlite3-0_libs \
