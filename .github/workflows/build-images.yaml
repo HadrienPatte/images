@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - jellyfin-chiseled
   schedule:
     - cron: '0 0 * * *'
 
