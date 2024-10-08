@@ -39,7 +39,7 @@ RUN \
         'arm64') export ARCH='arm64' ;; \
     esac \
     && curl -L "https://github.com/Radarr/Radarr/releases/download/v${VERSION}/Radarr.master.${VERSION}.linux-core-${ARCH}.tar.gz" \
-    | tar xzf - -C / \
+        | tar xzf - -C / \
     && rm -rf /Radarr/Radarr.Update
 
 FROM scratch

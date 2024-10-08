@@ -39,7 +39,7 @@ RUN \
         'arm64') export ARCH='arm64' ;; \
     esac \
     && curl -L "https://github.com/Sonarr/Sonarr/releases/download/v${VERSION}/Sonarr.main.${VERSION}.linux-${ARCH}.tar.gz" \
-    | tar xzf - -C / \
+        | tar xzf - -C / \
     && rm -rf /Sonarr/Sonarr.Update
 
 FROM scratch

@@ -5,7 +5,7 @@ ARG TARGETARCH
 ARG VERSION
 ARG CHISEL_VERSION
 
-# Install chisel and build rootfs with prowlarr dependencies
+# Install chisel and build rootfs with lidarr dependencies
 RUN \
     go install github.com/canonical/chisel/cmd/chisel@${CHISEL_VERSION} \
     && curl -LO https://raw.githubusercontent.com/canonical/rocks-toolbox/main/chisel-wrapper \
@@ -22,6 +22,7 @@ RUN \
         libsqlite3-0_libs \
         libssl3t64_libs \
         zlib1g_libs \
+        coreutils_bins \
     && useradd \
         --root /rootfs \
         --system \
@@ -32,19 +33,19 @@ RUN \
     && mkdir /rootfs/config \
     && chown 1000 /rootfs/config
 
-# Download prowlarr
+# Download lidarr
 RUN \
     case "${TARGETARCH}" in \
         'amd64') export ARCH='x64' ;; \
         'arm64') export ARCH='arm64' ;; \
     esac \
-    && curl -L "https://github.com/Prowlarr/Prowlarr/releases/download/v${VERSION}/Prowlarr.master.${VERSION}.linux-core-${ARCH}.tar.gz" \
+    && curl -L "https://github.com/Lidarr/Lidarr/releases/download/v${VERSION}/Lidarr.master.${VERSION}.linux-core-${ARCH}.tar.gz" \
         | tar xzf - -C / \
-    && rm -rf /Prowlarr/Prowlarr.Update
+    && rm -rf /Lidarr/Lidarr.Update
 
 FROM scratch
 COPY --from=builder /rootfs /
-COPY --from=builder /Prowlarr /Prowlarr
+COPY --from=builder /Lidarr /Lidarr
 
 USER nonroot
-ENTRYPOINT ["/Prowlarr/Prowlarr", "--nobrowser", "--data=/config"]
+ENTRYPOINT ["/Lidarr/Lidarr", "--nobrowser", "--data=/config"]
