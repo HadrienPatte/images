@@ -1,20 +1,22 @@
-ARG GOLANG_VERSION
-FROM golang:$GOLANG_VERSION AS builder
+ARG UBUNTU_VERSION
+FROM ubuntu:$UBUNTU_VERSION AS builder
 
 ARG TARGETARCH
 ARG VERSION
 ARG CHISEL_VERSION
+ARG UBUNTU_VERSION
 
 # Install chisel and build rootfs with lidarr dependencies
 RUN \
-    go install github.com/canonical/chisel/cmd/chisel@${CHISEL_VERSION} \
-    && curl -LO https://raw.githubusercontent.com/canonical/rocks-toolbox/main/chisel-wrapper \
-    && chmod +x ./chisel-wrapper \
-    && apt update \
-    && apt install file --yes \
+    apt update \
+    && apt install file curl --yes \
+    && curl -L https://github.com/canonical/chisel/releases/download/${CHISEL_VERSION}/chisel_${CHISEL_VERSION}_linux_${TARGETARCH}.tar.gz \
+        | tar xzf - -C /usr/bin \
+    && curl -LO --output-dir /usr/bin https://raw.githubusercontent.com/canonical/rocks-toolbox/main/chisel-wrapper \
+    && chmod +x /usr/bin/chisel-wrapper \
     && mkdir -p /rootfs/var/lib/dpkg \
-    && ./chisel-wrapper --generate-dpkg-status /rootfs/var/lib/dpkg/status -- \
-        --release ubuntu-24.04 \
+    && chisel-wrapper --generate-dpkg-status /rootfs/var/lib/dpkg/status -- \
+        --release ubuntu-${UBUNTU_VERSION} \
         --root /rootfs \
         base-files_base \
         ca-certificates_data \

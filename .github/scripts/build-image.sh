@@ -5,8 +5,8 @@ IMAGE=$1
 
 echo "Building $IMAGE"
 
-DEFAULT_GOLANG_VERSION="1.21"
-DEFAULT_CHISEL_VERSION="v0.10.0"
+DEFAULT_UBUNTU_VERSION="24.04"
+DEFAULT_CHISEL_VERSION="v1.0.0"
 
 REPOSITORY=$(jq -r '.repository' ./images/${IMAGE}/metadata.json)
 DESCRIPTION=$(curl -s "https://api.github.com/repos/${REPOSITORY}" | jq -r '.description | values')
@@ -28,7 +28,7 @@ else
         --tag ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:latest \
         --build-arg RELEASE=${RELEASE} \
         --build-arg VERSION=${VERSION} \
-        --build-arg GOLANG_VERSION=${DEFAULT_GOLANG_VERSION} \
+        --build-arg UBUNTU_VERSION=${DEFAULT_UBUNTU_VERSION} \
         --build-arg CHISEL_VERSION=${DEFAULT_CHISEL_VERSION} \
         --build-arg SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH} \
         --label "org.opencontainers.image.authors=${GITHUB_REPOSITORY_OWNER}" \
