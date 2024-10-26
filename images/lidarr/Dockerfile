@@ -24,7 +24,6 @@ RUN \
         libsqlite3-0_libs \
         libssl3t64_libs \
         zlib1g_libs \
-        coreutils_bins \
     && useradd \
         --root /rootfs \
         --system \
