@@ -31,6 +31,7 @@ else
         --build-arg UBUNTU_VERSION=${DEFAULT_UBUNTU_VERSION} \
         --build-arg CHISEL_VERSION=${DEFAULT_CHISEL_VERSION} \
         --build-arg SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH} \
+        --build-arg "BUILDKIT_DOCKERFILE_CHECK=skip=InvalidDefaultArgInFrom;error=true" \
         --label "org.opencontainers.image.authors=${GITHUB_REPOSITORY_OWNER}" \
         --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
         --label "org.opencontainers.image.version=${VERSION}" \
