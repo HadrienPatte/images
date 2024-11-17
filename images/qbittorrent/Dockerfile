@@ -9,15 +9,26 @@ ARG UBUNTU_VERSION
 # Install chisel and build rootfs
 RUN \
     apt update \
-    && apt install file curl --yes \
-    && curl -L https://github.com/canonical/chisel/releases/download/${CHISEL_VERSION}/chisel_${CHISEL_VERSION}_linux_${TARGETARCH}.tar.gz \
-        | tar xzf - -C /usr/bin \
-    && curl -LO --output-dir /usr/bin https://raw.githubusercontent.com/canonical/rocks-toolbox/main/chisel-wrapper \
+    && apt install --yes \
+        # Needed to download chisel and chisel-wrapper \
+        curl \
+        # chisel-wrapper dependency \
+        file \
+    && curl \
+        --location \
+        https://github.com/canonical/chisel/releases/download/${CHISEL_VERSION}/chisel_${CHISEL_VERSION}_linux_${TARGETARCH}.tar.gz \
+            | tar xzf - --directory /usr/bin \
+    && curl \
+        --location \
+        --remote-name \
+        --output-dir /usr/bin \
+        https://raw.githubusercontent.com/canonical/rocks-toolbox/main/chisel-wrapper \
     && chmod +x /usr/bin/chisel-wrapper \
     && mkdir -p /rootfs/var/lib/dpkg \
     && chisel-wrapper --generate-dpkg-status /rootfs/var/lib/dpkg/status -- \
         --release ubuntu-${UBUNTU_VERSION} \
         --root /rootfs \
+        # Base filesystem \
         base-files_base \
         ca-certificates_data \
     && useradd \
@@ -28,7 +39,7 @@ RUN \
         nonroot \
     && rm /rootfs/etc/.pwd.lock \
     && mkdir -p /rootfs/config/qBittorrent/config \
-    && chown -R 1000 /rootfs/config
+    && chown --recursive 1000 /rootfs/config
 
 # Download qbittorrent
 RUN \
@@ -36,7 +47,10 @@ RUN \
         'amd64') export ARCH='x86_64' ;; \
         'arm64') export ARCH='aarch64' ;; \
     esac \
-    && curl -L -o /qbittorrent-nox "https://github.com/userdocs/qbittorrent-nox-static/releases/download/${RELEASE}/${ARCH}-qbittorrent-nox" \
+    && curl \
+        --location \
+        --output /qbittorrent-nox \
+        "https://github.com/userdocs/qbittorrent-nox-static/releases/download/${RELEASE}/${ARCH}-qbittorrent-nox" \
     && chmod +x /qbittorrent-nox
 
 FROM scratch
