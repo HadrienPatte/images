@@ -5,8 +5,8 @@ ARG TARGETARCH
 ARG VERSION
 ARG CHISEL_VERSION
 
-# Install chisel and build rootfs with jellyfin dependencies
 RUN \
+    # Install chisel and dependencies \
     apt update \
     && apt install --yes \
         # Needed to download chisel and chisel-wrapper \
@@ -29,73 +29,43 @@ RUN \
     && chmod +x /usr/bin/chisel-wrapper \
     && mkdir -p /rootfs/var/lib/dpkg \
     && git clone --branch jellyfin https://github.com/HadrienPatte/chisel-releases.git \
-    && case "${TARGETARCH}" in \
-        'amd64') \
-            export FFMPEG_DEPS="\
-                libbluray2_libs \
-                libbz2-1.0_libs \
-                libc6_libs \
-                libelf1t64_libs \
-                libexpat1_libs \
-                libgcc-s1_libs \
-                libgmp10_libs \
-                libgnutls30t64_libs \
-                libllvm17t64_libs \
-                libmp3lame0_libs \
-                libopenmpt0t64_libs \
-                libopus0_libs \
-                libpciaccess0_libs \
-                libstdc++6_libs \
-                libtheora0_libs \
-                libudev1_libs \
-                libvorbis0a_libs \
-                libvorbisenc2_libs \
-                libvpx9_libs \
-                libwebp7_libs \
-                libwebpmux3_libs \
-                libx11-xcb1_libs \
-                libx264-164_libs \
-                libx265-199_libs \
-                libxcb-dri2-0_libs \
-                libxcb-dri3-0_libs \
-                libxcb-present0_libs \
-                libxcb-randr0_libs \
-                libxcb-shm0_libs \
-                libxcb-sync1_libs \
-                libxcb-xfixes0_libs \
-                libxcb1_libs \
-                libxshmfence1_libs \
-                libzstd1_libs \
-                libzvbi0t64_libs \
-                ocl-icd-libopencl1_libs \
-            " \
-        ;; \
-        'arm64') \
-            export FFMPEG_DEPS="\
-                libbluray2_libs \
-                libbz2-1.0_libs \
-                libc6_libs \
-                libdrm2_libs \
-                libgcc-s1_libs \
-                libgmp10_libs \
-                libgnutls30t64_libs \
-                libmp3lame0_libs \
-                libopenmpt0t64_libs \
-                libopus0_libs \
-                libstdc++6_libs \
-                libtheora0_libs \
-                libvorbis0a_libs \
-                libvorbisenc2_libs \
-                libvpx9_libs \
-                libwebp7_libs \
-                libwebpmux3_libs \
-                libx264-164_libs \
-                libx265-199_libs \
-                libzvbi0t64_libs \
-                ocl-icd-libopencl1_libs \
-            " \
-        ;; \
-    esac \
+    \
+    # Install jellyfin \
+    && mkdir /jellyfin \
+    # Download and extract jellyfin-web \
+    && curl \
+        --location \
+        --remote-name \
+        https://repo.jellyfin.org/files/server/ubuntu/stable/v${VERSION}/${TARGETARCH}/jellyfin-web_${VERSION}+ubu2404_all.deb \
+    && dpkg --extract jellyfin-web_*.deb /jellyfin \
+    \
+    # Download and extract jellyfin-server \
+    && curl \
+        --location \
+        --remote-name \
+        https://repo.jellyfin.org/files/server/ubuntu/stable/v${VERSION}/${TARGETARCH}/jellyfin-server_${VERSION}+ubu2404_${TARGETARCH}.deb \
+    && dpkg --extract jellyfin-server_*.deb /jellyfin \
+    \
+    # Download and extract jellyfin-ffmpeg \
+    && FFMPEG_TAG=$(curl -s "https://api.github.com/repos/Jellyfin/jellyfin-ffmpeg/releases/latest" \
+        | jq -r '.tag_name') \
+    && FFMPEG_VERSION=${FFMPEG_TAG#v} \
+    && curl \
+        --location \
+        --remote-name \
+        https://repo.jellyfin.org/files/ffmpeg/ubuntu/7.x/${FFMPEG_VERSION}/${TARGETARCH}/jellyfin-ffmpeg7_${FFMPEG_VERSION}-noble_${TARGETARCH}.deb \
+    && dpkg --extract jellyfin-ffmpeg7_*.deb /jellyfin \
+    \
+    # Prepare jellyfin-ffmpeg dependencies list \
+    && dpkg --control jellyfin-ffmpeg7_*.deb \
+    && export FFMPEG_DEPS=$(sed '/^Depends:/!d; s/Depends:\s//; s/\s([^)]*)//g; s/,\s/\n/g' DEBIAN/control \
+        | sed 's/\s|.*$//g; s/$/_libs/' \
+        | sort --unique) \
+    \
+    && rm \
+        /jellyfin/usr/share/doc/*/changelog*.gz \
+    \
+    # Build rootfs with jellyfin dependencies \
     && chisel-wrapper --generate-dpkg-status /rootfs/var/lib/dpkg/status -- \
         --release ./chisel-releases \
         --root /rootfs \
@@ -116,32 +86,6 @@ RUN \
     && rm /rootfs/etc/.pwd.lock \
     && mkdir /rootfs/config \
     && chown 1000 /rootfs/config
-
-# Install jellyfin
-RUN \
-    mkdir /jellyfin \
-    && FFMPEG_TAG=$(curl -s "https://api.github.com/repos/Jellyfin/jellyfin-ffmpeg/releases/latest" | jq -r '.tag_name') \
-    && FFMPEG_VERSION=${FFMPEG_TAG#v} \
-    && curl \
-        --location \
-        --remote-name \
-        https://repo.jellyfin.org/files/ffmpeg/ubuntu/7.x/${FFMPEG_VERSION}/${TARGETARCH}/jellyfin-ffmpeg7_${FFMPEG_VERSION}-noble_${TARGETARCH}.deb \
-    && dpkg --extract jellyfin-ffmpeg7_*.deb /jellyfin \
-    \
-    && curl \
-        --location \
-        --remote-name \
-        https://repo.jellyfin.org/files/server/ubuntu/stable/v${VERSION}/${TARGETARCH}/jellyfin-web_${VERSION}+ubu2404_all.deb \
-    && dpkg --extract jellyfin-web_*.deb /jellyfin \
-    \
-    && curl \
-        --location \
-        --remote-name \
-        https://repo.jellyfin.org/files/server/ubuntu/stable/v${VERSION}/${TARGETARCH}/jellyfin-server_${VERSION}+ubu2404_${TARGETARCH}.deb \
-    && dpkg --extract jellyfin-server_*.deb /jellyfin \
-    \
-    && rm \
-        /jellyfin/usr/share/doc/*/changelog*.gz
 
 FROM scratch
 COPY --from=builder /rootfs /
