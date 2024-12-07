@@ -10,7 +10,7 @@ name: Build images
 
 jobs:
   generate-images-matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.generate-images-matrix.outputs.matrix }}
     steps:
@@ -21,7 +21,7 @@ jobs:
         run: echo "matrix={\"images\":[$(ls -mQ images)]}" | tee $GITHUB_OUTPUT
 
   build-images:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: generate-images-matrix
     strategy:
       fail-fast: false
