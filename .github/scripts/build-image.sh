@@ -24,8 +24,8 @@ else
     docker buildx build \
         --platform linux/amd64,linux/arm64 \
         --provenance=false \
-        --tag ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:${VERSION} \
-        --tag ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:latest \
+        --tag ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}-debug:${VERSION} \
+        --tag ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}-debug:latest \
         --build-arg RELEASE=${RELEASE} \
         --build-arg VERSION=${VERSION} \
         --build-arg UBUNTU_VERSION=${DEFAULT_UBUNTU_VERSION} \
@@ -38,7 +38,7 @@ else
         --label "org.opencontainers.image.vendor=${GITHUB_REPOSITORY_OWNER}" \
         --label "org.opencontainers.image.title=${IMAGE}" \
         --annotation "index:org.opencontainers.image.description=${DESCRIPTION}" \
-        --output "type=registry,name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:${VERSION},rewrite-timestamp=true" \
-        --output "type=registry,name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:latest,rewrite-timestamp=true" \
+        --output "type=registry,name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}-debug:${VERSION},rewrite-timestamp=true,compression=zstd,compression-level=22" \
+        --output "type=registry,name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}-debug:latest,rewrite-timestamp=true,compression=zstd,compression-level=22" \
         - < images/${IMAGE}/Dockerfile
 fi
