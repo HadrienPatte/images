@@ -19,8 +19,10 @@ VERSION=${VERSION#v}
 
 echo "Version $VERSION"
 if [[ -z $VERSION ]]; then
-    echo "Failed to retrieve latest version for $IMAGE"
+    echo "::error::Failed to retrieve latest version for $IMAGE"
+    exit 1
 else
+    set +e
     docker buildx build \
         --platform linux/amd64,linux/arm64 \
         --provenance=false \
@@ -40,5 +42,11 @@ else
         --annotation "index:org.opencontainers.image.description=${DESCRIPTION}" \
         --output "type=registry,name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:${VERSION},rewrite-timestamp=true" \
         --output "type=registry,name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:latest,rewrite-timestamp=true" \
-        - < images/${IMAGE}/Dockerfile
+        - < images/${IMAGE}/Dockerfile \
+        2> >(tee err)
+            if [[ $? -ne 0 ]]; then
+                echo "::error::$IMAGE image build failed with error: $(cat err | grep '^ERROR')"
+                exit 1
+            fi
+    set -e
 fi

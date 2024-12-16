@@ -17,6 +17,7 @@ RUN \
         git \
         # Needed to get the jellyfin-ffmpeg version \
         jq \
+        make-it-fail \
     && curl \
         --location \
         https://github.com/canonical/chisel/releases/download/${CHISEL_VERSION}/chisel_${CHISEL_VERSION}_linux_${TARGETARCH}.tar.gz \
