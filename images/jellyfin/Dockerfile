@@ -4,6 +4,7 @@ FROM ubuntu:$UBUNTU_VERSION AS builder
 ARG TARGETARCH
 ARG VERSION
 ARG CHISEL_VERSION
+ARG UBUNTU_VERSION
 
 RUN \
     # Install chisel and dependencies \
@@ -13,8 +14,6 @@ RUN \
         curl \
         # chisel-wrapper dependency \
         file \
-        # Needed to clone a custom chisel-releases \
-        git \
         # Needed to get the jellyfin-ffmpeg version \
         jq \
     && curl \
@@ -28,7 +27,6 @@ RUN \
         https://raw.githubusercontent.com/canonical/rocks-toolbox/main/chisel-wrapper \
     && chmod +x /usr/bin/chisel-wrapper \
     && mkdir -p /rootfs/var/lib/dpkg \
-    && git clone --branch jellyfin https://github.com/HadrienPatte/chisel-releases.git \
     \
     # Install jellyfin \
     && mkdir /jellyfin \
@@ -67,7 +65,7 @@ RUN \
     \
     # Build rootfs with jellyfin dependencies \
     && chisel-wrapper --generate-dpkg-status /rootfs/var/lib/dpkg/status -- \
-        --release ./chisel-releases \
+        --release ubuntu-${UBUNTU_VERSION} \
         --root /rootfs \
         # Base filesystem \
         base-files_base \
@@ -94,4 +92,3 @@ COPY --from=builder /jellyfin/usr /usr
 USER nonroot
 ENV XDG_CACHE_HOME=/config/cache
 ENTRYPOINT ["/usr/lib/jellyfin/bin/jellyfin", "--ffmpeg=/usr/lib/jellyfin-ffmpeg/ffmpeg", "--webdir=/usr/share/jellyfin/web", "--datadir=/config"]
-
