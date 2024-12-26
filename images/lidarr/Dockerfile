@@ -10,26 +10,19 @@ ARG UBUNTU_VERSION
 RUN \
     apt update \
     && apt install --yes \
-        # Needed to download chisel and chisel-wrapper \
+        # Needed to download chisel \
         curl \
-        # chisel-wrapper dependency \
-        file \
     && curl \
         --location \
         https://github.com/canonical/chisel/releases/download/${CHISEL_VERSION}/chisel_${CHISEL_VERSION}_linux_${TARGETARCH}.tar.gz \
             | tar xzf - --directory /usr/bin \
-    && curl \
-        --location \
-        --remote-name \
-        --output-dir /usr/bin \
-        https://raw.githubusercontent.com/canonical/rocks-toolbox/main/chisel-wrapper \
-    && chmod +x /usr/bin/chisel-wrapper \
-    && mkdir -p /rootfs/var/lib/dpkg \
-    && chisel-wrapper --generate-dpkg-status /rootfs/var/lib/dpkg/status -- \
+    && mkdir /rootfs \
+    && chisel cut \
         --release ubuntu-${UBUNTU_VERSION} \
         --root /rootfs \
         # Base filesystem \
         base-files_base \
+        base-files_chisel \
         ca-certificates_data \
         # lidarr dependencies \
         libicu74_libs \
