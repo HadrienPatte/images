@@ -6,7 +6,7 @@ IMAGE=$1
 echo "Building $IMAGE"
 
 DEFAULT_UBUNTU_VERSION="24.04"
-DEFAULT_CHISEL_VERSION="v1.0.0"
+DEFAULT_CHISEL_VERSION="v1.1.0"
 
 REPOSITORY=$(jq -r '.repository' ./images/${IMAGE}/metadata.json)
 DESCRIPTION=$(curl -s "https://api.github.com/repos/${REPOSITORY}" | jq -r '.description | values')
