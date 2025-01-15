@@ -6,7 +6,7 @@ ARG VERSION
 ARG CHISEL_VERSION
 ARG UBUNTU_VERSION
 
-RUN \
+RUN --mount=type=secret,id=UBUNTU_PRO_CREDS,target=/etc/apt/auth.conf.d/90ubuntu-advantage \
     # Install chisel and dependencies \
     apt update \
     && apt install --yes \
