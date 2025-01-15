@@ -7,7 +7,7 @@ ARG CHISEL_VERSION
 ARG UBUNTU_VERSION
 
 # Install chisel and build rootfs with radarr dependencies
-RUN \
+RUN --mount=type=secret,id=UBUNTU_PRO_CREDS,target=/etc/apt/auth.conf.d/90ubuntu-advantage \
     apt update \
     && apt install --yes \
         # Needed to download chisel \
