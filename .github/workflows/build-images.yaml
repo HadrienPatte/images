@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - pro
   schedule:
     - cron: '0 0 * * *'
 
@@ -41,4 +42,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build image
+        env:
+          UBUNTU_PRO_CREDS: ${{ secrets.UBUNTU_PRO_CREDS }}
         run: ./.github/scripts/build-image.sh ${{ matrix.image }}
