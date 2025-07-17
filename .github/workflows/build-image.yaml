@@ -1,0 +1,128 @@
+name: Build image
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+
+jobs:
+  image-metadata:
+    name: Gather image metadata
+    runs-on: ubuntu-24.04
+    outputs:
+      DESCRIPTION: ${{ steps.image-metadata.outputs.DESCRIPTION }}
+      SOURCE_DATE_EPOCH: ${{ steps.image-metadata.outputs.SOURCE_DATE_EPOCH }}
+      RELEASE: ${{ steps.image-metadata.outputs.RELEASE }}
+      VERSION: ${{ steps.image-metadata.outputs.VERSION }}
+      REPOSITORY_OWNER_LOWER: ${{ steps.image-metadata.outputs.REPOSITORY_OWNER_LOWER }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - name: Gather image metadata
+        id: image-metadata
+        env:
+          IMAGE: ${{ inputs.image }}
+        run: |
+          set -euxo pipefail
+
+          REPOSITORY=$(jq -r '.repository' ./images/${IMAGE}/metadata.json)
+          DESCRIPTION=$(curl -s --header "authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${REPOSITORY}" | jq -r '.description | values')
+          RELEASE_METADATA=$(curl -s --header "authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${REPOSITORY}/releases/latest")
+          SOURCE_DATE_EPOCH=$(date +%s -d $(echo ${RELEASE_METADATA} | jq -r '.created_at'))
+          RELEASE=$(echo ${RELEASE_METADATA} | jq -r '.tag_name')
+          VERSION=${RELEASE%%_*}
+          VERSION=${VERSION#release-}
+          VERSION=${VERSION#v}
+
+          echo "DESCRIPTION=${DESCRIPTION}" >> $GITHUB_OUTPUT
+          echo "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}" >> $GITHUB_OUTPUT
+          echo "RELEASE=${RELEASE}" >> $GITHUB_OUTPUT
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "REPOSITORY_OWNER_LOWER=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+
+  build-platform:
+    name: Build ${{ inputs.image }} ${{ matrix.platform }} image
+    runs-on: ${{ matrix.platform == 'linux/amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
+    needs: image-metadata 
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [amd64, arm64]
+    outputs:
+      # linux/amd64
+      imageid-amd64: ${{ steps.build.outputs.imageid-amd64 }}
+      digest-amd64: ${{ steps.build.outputs.digest-amd64 }}
+      metadata-amd64: ${{ steps.build.outputs.metadata-amd64 }}
+      # linux/arm64
+      imageid-arm64: ${{ steps.build.outputs.imageid-arm64 }}
+      digest-arm64: ${{ steps.build.outputs.digest-arm64 }}
+      metadata-arm64: ${{ steps.build.outputs.metadata-arm64 }}
+    steps:
+      # - name: Checkout repository
+      #   uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435  # v3.11.1
+      - name: Login to Github container registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772  # v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build ${{ inputs.image }} ${{ matrix.platform }} image
+        id: build-${{ matrix.platform }}
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/${{ matrix.platform }}
+          provenance: false
+          file: images/${{ inputs.image }}/Dockerfile
+          tags: |
+            ghcr.io/${{ needs.image-metadata.outputs.REPOSITORY_OWNER_LOWER }}/${{ inputs.image }}-dev:${{ needs.image-metadata.outputs.VERSION }}
+            ghcr.io/${{ needs.image-metadata.outputs.REPOSITORY_OWNER_LOWER }}/${{ inputs.image }}-dev:latest
+          build-args: |
+            RELEASE=${{ needs.image-metadata.outputs.RELEASE }}
+            VERSION=${{ needs.image-metadata.outputs.VERSION }}
+            UBUNTU_VERSION=24.04
+            CHISEL_VERSION=v1.2.0
+            SOURCE_DATE_EPOCH=${{ needs.image-metadata.outputs.SOURCE_DATE_EPOCH }}
+            BUILDKIT_DOCKERFILE_CHECK=skip=InvalidDefaultArgInFrom;error=true
+          secrets: |
+            id=UBUNTU_PRO_CREDS
+          labels: |
+            org.opencontainers.image.authors=${{ github.repository_owner }}
+            org.opencontainers.image.source=${{ github.server_url	}}/${{ github.repository }}
+            org.opencontainers.image.version=${{ needs.image-metadata.outputs.VERSION }}
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+            org.opencontainers.image.title=${{ inputs.image }}
+          outputs: |
+            type=registry,name=ghcr.io/${{ needs.image-metadata.outputs.REPOSITORY_OWNER_LOWER }}/${{ inputs.image }}-dev:${{ needs.image-metadata.outputs.VERSION }},rewrite-timestamp=true
+            type=registry,name=ghcr.io/${{ needs.image-metadata.outputs.REPOSITORY_OWNER_LOWER }}/${{ inputs.image }}-dev:latest,rewrite-timestamp=true
+      - name: Forward build outputs
+        id: build
+        run: |
+          echo $GITHUB_OUTPUT
+          
+
+
+
+
+          # UBUNTU_PRO_CREDS: ${{ secrets.UBUNTU_PRO_CREDS }}
+
+  build-multi-platform:
+    name: Build ${{ inputs.image }} multi-platform image
+    runs-on: ubuntu-24.04
+    needs:
+      - build-platform
+    steps:
+      - name: Build multi-platform image for ${{ inputs.image }}
+        run: |
+          echo "Finalized ${{ inputs.image }} after all arch builds"
+          echo "amd64 imageid: ${{ needs.build-platform.outputs.imageid-amd64 }}"
+          echo "amd64 digest: ${{ needs.build-platform.outputs.digest-amd64 }}"
+          echo "amd64 metadata: ${{ needs.build-platform.outputs.metadata-amd64 }}"
+
+          echo "arm64 imageid: ${{ needs.build-platform.outputs.imageid-arm64 }}"
+          echo "arm64 digest: ${{ needs.build-platform.outputs.digest-arm64 }}"
+          echo "arm64 metadata: ${{ needs.build-platform.outputs.metadata-arm64 }}"
+        # TODO: check that metadata match before merging

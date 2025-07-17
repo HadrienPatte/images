@@ -1,12 +1,8 @@
----
+name: Build images
+
 on:
   push:
-    branches:
-      - main
-  schedule:
-    - cron: '0 0 * * *'
-
-name: Build images
+    branches: [native-build]
 
 jobs:
   generate-images-matrix:
@@ -21,26 +17,12 @@ jobs:
         run: echo "matrix={\"images\":[$(ls -mQ images)]}" | tee $GITHUB_OUTPUT
 
   build-images:
-    runs-on: ubuntu-24.04
+    name: Build ${{ matrix.image }} image
     needs: generate-images-matrix
     strategy:
       fail-fast: false
       matrix:
         image: ${{ fromJSON(needs.generate-images-matrix.outputs.matrix).images }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392  # v3.6.0
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435  # v3.11.1
-      - name: Login to Github container registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772  # v3.4.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build image
-        env:
-          UBUNTU_PRO_CREDS: ${{ secrets.UBUNTU_PRO_CREDS }}
-        run: ./.github/scripts/build-image.sh ${{ matrix.image }}
+    uses: ./.github/workflows/build-image.yaml
+    with:
+      image: ${{ matrix.image }}
