@@ -24,10 +24,10 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        ".github/scripts/build-image.sh"
+        ".github/workflows/build-image.yaml"
       ],
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s.+_VERSION=\"(?<currentValue>.*)\""
+        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s.+_VERSION: (?<currentValue>.*)"
       ]
     }
   ]
