@@ -43,4 +43,5 @@ jobs:
       - name: Build image
         env:
           UBUNTU_PRO_CREDS: ${{ secrets.UBUNTU_PRO_CREDS }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./.github/scripts/build-image.sh ${{ matrix.image }}

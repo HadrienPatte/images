@@ -9,8 +9,8 @@ DEFAULT_UBUNTU_VERSION="24.04"
 DEFAULT_CHISEL_VERSION="v1.2.0"
 
 REPOSITORY=$(jq -r '.repository' ./images/${IMAGE}/metadata.json)
-DESCRIPTION=$(curl -s "https://api.github.com/repos/${REPOSITORY}" | jq -r '.description | values')
-RELEASE_METADATA=$(curl -s "https://api.github.com/repos/${REPOSITORY}/releases/latest")
+DESCRIPTION=$(curl -s --header "authorization: Bearer ${GITHUB_TOKEN}" "https://api.github.com/repos/${REPOSITORY}" | jq -r '.description | values')
+RELEASE_METADATA=$(curl -s --header "authorization: Bearer ${GITHUB_TOKEN}" "https://api.github.com/repos/${REPOSITORY}/releases/latest")
 SOURCE_DATE_EPOCH=$(date +%s -d $(echo ${RELEASE_METADATA} | jq -r '.created_at'))
 RELEASE=$(echo ${RELEASE_METADATA} | jq -r '.tag_name')
 VERSION=${RELEASE%%_*}
