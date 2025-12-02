@@ -6,6 +6,7 @@ IMAGE=$1
 echo "Building $IMAGE"
 
 DEFAULT_UBUNTU_VERSION="24.04"
+# renovate: datasource=github-releases depName=canonical/chisel
 DEFAULT_CHISEL_VERSION="v1.2.0"
 
 REPOSITORY=$(jq -r '.repository' ./images/${IMAGE}/metadata.json)
