@@ -7,7 +7,7 @@ echo "Building $IMAGE"
 
 DEFAULT_UBUNTU_VERSION="24.04"
 # renovate: datasource=github-releases depName=canonical/chisel
-DEFAULT_CHISEL_VERSION="v1.3.0"
+DEFAULT_CHISEL_VERSION="v1.4.0"
 
 REPOSITORY=$(jq -r '.repository' ./images/${IMAGE}/metadata.json)
 DESCRIPTION=$(curl -s --header "authorization: Bearer ${GITHUB_TOKEN}" "https://api.github.com/repos/${REPOSITORY}" | jq -r '.description | values')
