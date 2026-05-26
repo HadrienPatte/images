@@ -5,7 +5,7 @@ IMAGE=$1
 
 echo "Building $IMAGE"
 
-DEFAULT_UBUNTU_VERSION="24.04"
+DEFAULT_UBUNTU_VERSION="26.04"
 # renovate: datasource=github-releases depName=canonical/chisel
 DEFAULT_CHISEL_VERSION="v1.4.1"
 

@@ -25,7 +25,7 @@ RUN --mount=type=secret,id=UBUNTU_PRO_CREDS,target=/etc/apt/auth.conf.d/90ubuntu
         base-files_chisel \
         ca-certificates_data \
         # lidarr dependencies \
-        libicu74_libs \
+        libicu78_libs \
         libsqlite3-0_libs \
         libssl3t64_libs \
         zlib1g_libs \
