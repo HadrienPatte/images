@@ -43,7 +43,7 @@ RUN --mount=type=secret,id=UBUNTU_PRO_CREDS,target=/etc/apt/auth.conf.d/90ubuntu
     && curl \
         --location \
         --remote-name \
-        https://repo.jellyfin.org/files/ffmpeg/ubuntu/7.x/${FFMPEG_VERSION}/${TARGETARCH}/jellyfin-ffmpeg7_${FFMPEG_VERSION}-noble_${TARGETARCH}.deb \
+        https://repo.jellyfin.org/files/ffmpeg/ubuntu/7.x/${FFMPEG_VERSION}/${TARGETARCH}/jellyfin-ffmpeg7_${FFMPEG_VERSION}-resolute_${TARGETARCH}.deb \
     && dpkg --extract jellyfin-ffmpeg7_*.deb /jellyfin \
     \
     # Prepare jellyfin-ffmpeg dependencies list \
@@ -64,7 +64,8 @@ RUN --mount=type=secret,id=UBUNTU_PRO_CREDS,target=/etc/apt/auth.conf.d/90ubuntu
         base-files_chisel \
         ca-certificates_data \
         # jellyfin dependencies \
-        dotnet-runtime-8.0_libs \
+        dotnet-runtime-10.0_core \
+        libicu78_libs \
         libsqlite3-0_libs \
         # jellyfin-ffmpeg dependencies \
         ${FFMPEG_DEPS} \
