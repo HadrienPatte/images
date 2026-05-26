@@ -22,6 +22,11 @@ echo "Version $VERSION"
 if [[ -z $VERSION ]]; then
     echo "Failed to retrieve latest version for $IMAGE"
 else
+    if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+        OUTPUT_TYPE="registry"
+    else
+        OUTPUT_TYPE="image"
+    fi
     docker buildx build \
         --platform linux/amd64,linux/arm64 \
         --provenance=false \
@@ -40,7 +45,7 @@ else
         --label "org.opencontainers.image.vendor=${GITHUB_REPOSITORY_OWNER}" \
         --label "org.opencontainers.image.title=${IMAGE}" \
         --annotation "index:org.opencontainers.image.description=${DESCRIPTION}" \
-        --output "type=registry,name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:${VERSION},rewrite-timestamp=true" \
-        --output "type=registry,name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:latest,rewrite-timestamp=true" \
+        --output "type=${OUTPUT_TYPE},name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:${VERSION},rewrite-timestamp=true" \
+        --output "type=${OUTPUT_TYPE},name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE}:latest,rewrite-timestamp=true" \
         - < images/${IMAGE}/Dockerfile
 fi
