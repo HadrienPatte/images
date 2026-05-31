@@ -40,6 +40,11 @@ jobs:
           VERSION=${VERSION#release-}
           VERSION=${VERSION#v}
 
+          if [[ -z "${VERSION}" ]]; then
+            echo "Failed to retrieve latest version for ${IMAGE}" >&2
+            exit 1
+          fi
+
           echo "DESCRIPTION=${DESCRIPTION}" >> $GITHUB_OUTPUT
           echo "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}" >> $GITHUB_OUTPUT
           echo "RELEASE=${RELEASE}" >> $GITHUB_OUTPUT
