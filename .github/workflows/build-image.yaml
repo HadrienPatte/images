@@ -1,0 +1,180 @@
+name: Build image
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image-metadata:
+    name: metadata
+    runs-on: ubuntu-24.04
+    outputs:
+      DESCRIPTION: ${{ steps.image-metadata.outputs.DESCRIPTION }}
+      SOURCE_DATE_EPOCH: ${{ steps.image-metadata.outputs.SOURCE_DATE_EPOCH }}
+      RELEASE: ${{ steps.image-metadata.outputs.RELEASE }}
+      VERSION: ${{ steps.image-metadata.outputs.VERSION }}
+      REPOSITORY_OWNER_LOWER: ${{ steps.image-metadata.outputs.REPOSITORY_OWNER_LOWER }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Gather image metadata
+        id: image-metadata
+        env:
+          IMAGE: ${{ inputs.image }}
+        run: |
+          set -euxo pipefail
+
+          REPOSITORY=$(jq -r '.repository' ./images/${IMAGE}/metadata.json)
+          DESCRIPTION=$(curl -s --header "authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${REPOSITORY}" | jq -r '.description | values')
+          RELEASE_METADATA=$(curl -s --header "authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${REPOSITORY}/releases/latest")
+          SOURCE_DATE_EPOCH=$(date +%s -d $(echo ${RELEASE_METADATA} | jq -r '.created_at'))
+          RELEASE=$(echo ${RELEASE_METADATA} | jq -r '.tag_name')
+          VERSION=${RELEASE%%_*}
+          VERSION=${VERSION#release-}
+          VERSION=${VERSION#v}
+
+          if [[ -z "${VERSION}" ]]; then
+            echo "Failed to retrieve latest version for ${IMAGE}" >&2
+            exit 1
+          fi
+
+          echo "DESCRIPTION=${DESCRIPTION}" >> $GITHUB_OUTPUT
+          echo "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}" >> $GITHUB_OUTPUT
+          echo "RELEASE=${RELEASE}" >> $GITHUB_OUTPUT
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "REPOSITORY_OWNER_LOWER=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+
+  build-platform:
+    name: linux/${{ matrix.platform }} platform
+    runs-on: ${{ matrix.platform == 'amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
+    needs: image-metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [amd64, arm64]
+    env:
+      IMAGE_REF: ghcr.io/${{ needs.image-metadata.outputs.REPOSITORY_OWNER_LOWER }}/${{ inputs.image }}
+      # renovate: datasource=github-releases depName=canonical/chisel
+      CHISEL_VERSION: v1.4.1
+      # renovate: datasource=github-releases depName=google/go-containerregistry
+      CRANE_VERSION: v0.21.6
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+      - name: Build ${{ inputs.image }} linux/${{ matrix.platform }} image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        env:
+          UBUNTU_PRO_CREDS: ${{ secrets.UBUNTU_PRO_CREDS }}
+        with:
+          context: .
+          file: images/${{ inputs.image }}/Dockerfile
+          platforms: linux/${{ matrix.platform }}
+          provenance: false
+          push: false
+          build-args: |
+            RELEASE=${{ needs.image-metadata.outputs.RELEASE }}
+            VERSION=${{ needs.image-metadata.outputs.VERSION }}
+            UBUNTU_VERSION=24.04
+            CHISEL_VERSION=${{ env.CHISEL_VERSION }}
+            SOURCE_DATE_EPOCH=${{ needs.image-metadata.outputs.SOURCE_DATE_EPOCH }}
+            BUILDKIT_DOCKERFILE_CHECK=skip=InvalidDefaultArgInFrom;error=true
+          secret-envs: |
+            UBUNTU_PRO_CREDS=UBUNTU_PRO_CREDS
+          labels: |
+            org.opencontainers.image.authors=${{ github.repository_owner }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ needs.image-metadata.outputs.VERSION }}
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+            org.opencontainers.image.title=${{ inputs.image }}
+          outputs: type=oci,dest=${{ runner.temp }}/oci,tar=false,rewrite-timestamp=true
+      - name: Login to Github container registry
+        if: github.ref_name == 'main'
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up crane
+        if: github.ref_name == 'main'
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euxo pipefail
+
+          ARCH=${{ matrix.platform == 'amd64' && 'x86_64' || 'arm64' }}
+          ARCHIVE="go-containerregistry_Linux_${ARCH}.tar.gz"
+          BASE_URL="https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}"
+
+          curl --fail --location --silent --show-error \
+            --remote-name "${BASE_URL}/${ARCHIVE}" \
+            --remote-name "${BASE_URL}/checksums.txt"
+          grep " ${ARCHIVE}\$" checksums.txt | sha256sum --check -
+
+          sudo tar --extract --gzip --file "${ARCHIVE}" --directory /usr/local/bin crane
+          crane version
+      - name: Push ${{ inputs.image }} linux/${{ matrix.platform }} image by digest
+        if: github.ref_name == 'main'
+        run: |
+          set -euxo pipefail
+
+          DIGEST=$(jq -r '.manifests[0].digest' "${{ runner.temp }}/oci/index.json")
+          crane push "${{ runner.temp }}/oci" "${IMAGE_REF}@${DIGEST}"
+
+          mkdir -p "${{ runner.temp }}/digests"
+          touch "${{ runner.temp }}/digests/${DIGEST#sha256:}"
+      - name: Upload digest
+        if: github.ref_name == 'main'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: digests-${{ inputs.image }}-${{ matrix.platform }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  build-multi-platform:
+    name: multi-platform
+    runs-on: ubuntu-24.04
+    if: github.ref_name == 'main'
+    needs:
+      - image-metadata
+      - build-platform
+    env:
+      IMAGE_REF: ghcr.io/${{ needs.image-metadata.outputs.REPOSITORY_OWNER_LOWER }}/${{ inputs.image }}
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ inputs.image }}-*
+          merge-multiple: true
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+      - name: Login to Github container registry
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create and push multi-platform image
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          VERSION: ${{ needs.image-metadata.outputs.VERSION }}
+          DESCRIPTION: ${{ needs.image-metadata.outputs.DESCRIPTION }}
+        run: |
+          set -euxo pipefail
+
+          docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.description=${DESCRIPTION}" \
+            --tag "${IMAGE_REF}:${VERSION}" \
+            --tag "${IMAGE_REF}:latest" \
+            $(printf "${IMAGE_REF}@sha256:%s " *)
+      - name: Inspect multi-platform image
+        run: docker buildx imagetools inspect "${IMAGE_REF}:${{ needs.image-metadata.outputs.VERSION }}"
