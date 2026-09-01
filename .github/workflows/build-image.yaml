@@ -62,7 +62,7 @@ jobs:
     env:
       IMAGE_REF: ghcr.io/${{ needs.image-metadata.outputs.REPOSITORY_OWNER_LOWER }}/${{ inputs.image }}
       # renovate: datasource=github-releases depName=canonical/chisel
-      CHISEL_VERSION: v1.4.2
+      CHISEL_VERSION: v1.5.0
       # renovate: datasource=github-releases depName=google/go-containerregistry
       CRANE_VERSION: v0.22.0
     steps:
