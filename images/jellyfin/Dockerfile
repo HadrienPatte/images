@@ -43,11 +43,11 @@ RUN --mount=type=secret,id=UBUNTU_PRO_CREDS,target=/etc/apt/auth.conf.d/90ubuntu
     && curl \
         --location \
         --remote-name \
-        https://repo.jellyfin.org/files/ffmpeg/ubuntu/7.x/${FFMPEG_VERSION}/${TARGETARCH}/jellyfin-ffmpeg7_${FFMPEG_VERSION}-noble_${TARGETARCH}.deb \
-    && dpkg --extract jellyfin-ffmpeg7_*.deb /jellyfin \
+        https://repo.jellyfin.org/files/ffmpeg/ubuntu/8.x/${FFMPEG_VERSION}/${TARGETARCH}/jellyfin-ffmpeg8_${FFMPEG_VERSION}-noble_${TARGETARCH}.deb \
+    && dpkg --extract jellyfin-ffmpeg*.deb /jellyfin \
     \
     # Prepare jellyfin-ffmpeg dependencies list \
-    && dpkg --control jellyfin-ffmpeg7_*.deb \
+    && dpkg --control jellyfin-ffmpeg*.deb \
     && export FFMPEG_DEPS=$(sed '/^Depends:/!d; s/Depends:\s//; s/\s([^)]*)//g; s/,\s/\n/g' DEBIAN/control \
         | sed 's/\s|.*$//g; s/$/_libs/' \
         | sort --unique) \
