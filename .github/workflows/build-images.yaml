@@ -12,7 +12,7 @@ permissions:
 jobs:
   generate-images-matrix:
     name: images matrix
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       matrix: ${{ steps.generate-images-matrix.outputs.matrix }}
     steps:

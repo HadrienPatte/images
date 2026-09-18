@@ -14,7 +14,7 @@ permissions:
 jobs:
   image-metadata:
     name: metadata
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       DESCRIPTION: ${{ steps.image-metadata.outputs.DESCRIPTION }}
       SOURCE_DATE_EPOCH: ${{ steps.image-metadata.outputs.SOURCE_DATE_EPOCH }}
@@ -53,7 +53,7 @@ jobs:
 
   build-platform:
     name: linux/${{ matrix.platform }} platform
-    runs-on: ${{ matrix.platform == 'amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
+    runs-on: ubuntu-26.04${{ matrix.platform == 'arm64' && '-arm' || '' }}
     needs: image-metadata
     strategy:
       fail-fast: false
@@ -141,7 +141,7 @@ jobs:
 
   build-multi-platform:
     name: multi-platform
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: github.ref_name == 'main'
     needs:
       - image-metadata
